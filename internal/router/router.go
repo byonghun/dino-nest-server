@@ -3,6 +3,8 @@ package router
 import (
 	"net/http"
 
+	"go-api-server/internal/handler"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -45,6 +47,24 @@ func SetupRouter() *gin.Engine {
 
     // Register a POST route at "/post" and associate it with PostHandler.
     r.POST("/post", PostHandler)
+
+    // Authentication routes
+    // These endpoints handle user registration, login, and logout
+
+    // POST /signup - Register a new user account
+    // Expects: { "email": "user@example.com", "password": "password123" }
+    // Returns: JWT token and user info
+    r.POST("/signup", handler.SignupHandler)
+
+    // POST /login - Authenticate an existing user
+    // Expects: { "email": "user@example.com", "password": "password123" }
+    // Returns: JWT token and user info
+    r.POST("/login", handler.LoginHandler)
+
+    // POST /logout - Log out the current user
+    // Expects: Authorization header with Bearer token
+    // Returns: Success message
+    r.POST("/logout", handler.LogoutHandler)
 
     // Return the configured router so it can be used to start the HTTP server.
     return r
