@@ -1,8 +1,8 @@
 package handler
 
 import (
-    "net/http" // Go's built-in net/http package for HTTP handling
-    "encoding/json"
+	"encoding/json"
+	"net/http" // Go's built-in net/http package for HTTP handling
 )
 
 // GetHandler handles HTTP GET requests.
