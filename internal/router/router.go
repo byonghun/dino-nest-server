@@ -1,5 +1,10 @@
 package router
 
+// What is Gin?
+// Gin is a high-performance HTTP web framework for Go (Golang).
+// It provides a simple and efficient way to build web applications and APIs.
+// Gin is known for its speed, minimalism, and ease of use, making it a popular choice among Go developers.
+
 import (
 	"net/http"
 
@@ -65,6 +70,18 @@ func SetupRouter() *gin.Engine {
     // Expects: Authorization header with Bearer token
     // Returns: Success message
     r.POST("/logout", handler.LogoutHandler)
+
+    // GET /users - List all registered users
+    // Returns: List of users and count of users
+    r.GET("/users", handler.ListUsersHandler)
+
+    // GET /users/search - Get user by email using query parameter
+    // Example: /users/search?email=user@example.com
+    r.GET("/users/search", handler.GetUserByEmailHandler)
+
+    // GET /users/:id - Get user by their unique ID
+    // Example: /users/123e4567-e89b-12d3-a456-426614174000
+    r.GET("/users/:id", handler.GetUserByIDHandler)
 
     // Return the configured router so it can be used to start the HTTP server.
     return r
