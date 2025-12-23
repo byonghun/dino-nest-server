@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"go-api-server/internal/handler"
+	"go-api-server/internal/middleware"
 
 	"github.com/gin-gonic/gin"
 )
@@ -82,6 +83,16 @@ func SetupRouter() *gin.Engine {
     // GET /users/:id - Get user by their unique ID
     // Example: /users/123e4567-e89b-12d3-a456-426614174000
     r.GET("/users/:id", handler.GetUserByIDHandler)
+
+    // Protected routes for Goals
+    protected := r.Group("/")
+    protected.Use(middleware.AuthMiddleware())
+    {
+        protected.POST("/goals", handler.CreateGoalHandler)
+        protected.GET("/goals", handler.GetGoalsHandler)
+        protected.PUT("/goals/:id/progress", handler.UpdateGoalProgressHandler)
+        protected.DELETE("/goals/:id", handler.DeleteGoalHandler)
+    }
 
     // Return the configured router so it can be used to start the HTTP server.
     return r
