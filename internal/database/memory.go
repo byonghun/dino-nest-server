@@ -13,6 +13,9 @@ type InMemoryDB struct {
 	// users stores all users with email as the key for quick lookups
 	// map[email]User allows us to quickly check if an email already exists
 	users map[string]*models.User
+
+	// goals stores all goals with ID as the key
+	goals map[string]*models.Goal
 	
 	// mu is a read-write mutex to protect concurrent access to the users map
 	// This prevents race conditions when multiple goroutines access the database
@@ -26,6 +29,7 @@ func NewInMemoryDB() *InMemoryDB {
 	return &InMemoryDB{
 		// Initialize the users map with make()
 		users: make(map[string]*models.User),
+		goals: make(map[string]*models.Goal),
 	}
 }
 
@@ -149,4 +153,124 @@ func (db *InMemoryDB) GetAllUsers() []*models.User {
 	}
 	
 	return users
+}
+
+// CreateGoal adds a new goal to the database.
+// It returns an error if a goal with the same ID already exists.
+// Parameters:
+//   - goal: pointer to the Goal struct to be stored
+// Returns:
+//   - error: nil if successful, error if ID already exists
+func (db *InMemoryDB) CreateGoal(goal *models.Goal) error {
+	// Lock the database for writing (exclusive access)
+	// This prevents other goroutines from reading or writing while we're creating a goal
+	db.mu.Lock()
+	// Defer unlocking to ensure it happens even if there's an error
+	// defer means "run this when the function exits"
+	defer db.mu.Unlock()
+
+	// Check if a goal with this ID already exists
+	if _, exists := db.goals[goal.ID]; exists {
+		// Return an error if the ID is already registered
+		return errors.New("goal with this ID already exists")
+	}
+
+	// Store the goal in the map with ID as the key
+	db.goals[goal.ID] = goal
+
+	// Return nil to indicate success (no error)
+	return nil
+}
+
+// GetGoalsByUserID retrieves all goals for a specific user.
+// Parameters:
+//   - userID: the ID of the user whose goals we want to retrieve
+// Returns:
+//   - []*models.Goal: slice containing pointers to the user's goals
+//   - error: nil if successful, error if user has no goals or other error
+func (db *InMemoryDB) GetGoalsByUserID(userID string) ([]*models.Goal, error) {
+	// Lock the database for reading (shared access allowed)
+	// Multiple goroutines can read at the same time, but not while someone is writing
+	db.mu.RLock()
+	// Unlock when the function exits
+	defer db.mu.RUnlock()
+
+	// Create a slice to hold the user's goals
+	var userGoals []*models.Goal
+	// Iterate through all goals to find those belonging to the user
+	for _, goal := range db.goals {
+		if goal.UserID == userID {
+			// Add the goal to the user's goals slice
+			userGoals = append(userGoals, goal)
+		}
+	}
+
+	// Return the slice of user goals (empty if none found) and no error
+	return userGoals, nil
+}
+
+// GetGoalByID retrieves a goal from the database by its ID.
+// Parameters:
+//   - id: the ID of the goal to retrieve
+// Returns:
+//   - *models.Goal: pointer to the found goal, or nil if not found
+//   - error: nil if found, error if goal doesn't exist
+func (db *InMemoryDB) GetGoalByID(id string) (*models.Goal, error) {
+	// Lock the database for reading (shared access allowed)
+	// Multiple goroutines can read at the same time, but not while someone is writing
+	db.mu.RLock()
+	// Unlock when the function exits
+	defer db.mu.RUnlock()
+
+	// Look up the goal by ID
+	goal, exists := db.goals[id]
+	if !exists {
+		// Return nil goal and an error if not found
+		return nil, errors.New("goal not found")
+	}
+
+	// Return the found goal and no error
+	return goal, nil
+}
+
+// UpdateGoal updates an existing goal in the database.
+// Parameters:
+//   - goal: pointer to the Goal struct with updated information
+// Returns:
+//   - error: nil if successful, error if goal doesn't exist
+func (db *InMemoryDB) UpdateGoal(goal *models.Goal) error {
+	// Lock the database for writing (exclusive access)
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	// Check if the goal exists before trying to update
+	if _, exists := db.goals[goal.ID]; !exists {
+		return errors.New("goal not found")
+	}
+
+	// Update the goal in the map
+	db.goals[goal.ID] = goal
+
+	return nil
+}
+
+// DeleteGoal removes a goal from the database by its ID.
+// Parameters:
+//   - id: the ID of the goal to delete
+// Returns:
+//   - error: nil if successful, error if goal doesn't exist
+func (db *InMemoryDB) DeleteGoal(id string) error {
+	// Lock the database for writing (exclusive access)
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	// Check if the goal exists before trying to delete
+	if _, exists := db.goals[id]; !exists {
+		return errors.New("goal not found")
+	}
+
+	// Delete the goal from the map using the built-in delete function
+	delete(db.goals, id)
+
+	return nil
 }
